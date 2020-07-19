@@ -1,0 +1,29 @@
+---
+
+- debug:
+    var: vol_created
+
+- name: set disk_init
+  set_fact:
+    disk_details: "{{ disk_details | default([]) + [{'volume_id': (init_disk.volume_info.item.volume_id == '1') | ternary(init_disk.volume_id, init_disk.volume_info.item.volume_id),'drive_letter': init_disk.volume_info.item.drive_letter | upper }] }}"
+  when: init_disk.volume_info.rc == 1
+  with_items: "{{ vol_created.results }}"
+  loop_control:
+    loop_var: init_disk
+
+- debug:
+    var: disk_details
+
+- name: Get Disk details
+  win_shell: |
+    Get-Disk | Where-Object SerialNumber -EQ {{ item.volume_id }} |
+    Initialize-disk -PartitionStyle GPT
+    Get-Disk | Where-Object SerialNumber -EQ {{ item.volume_id }} |
+    New-Partition -UseMaximumSize -DriveLetter {{ item.drive_letter }} | Format-Volume -FileSystem NTFS -Confirm:$false -force
+    Get-Disk | Where-Object SerialNumber -EQ {{ item.volume_id }} |
+    Set-Disk -Number -IsOffline $false
+  register: "initialize_na"
+  with_items: "{{ disk_details }}"
+
+- debug:
+    var: initialize_na
