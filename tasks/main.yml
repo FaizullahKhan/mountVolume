@@ -1,0 +1,5 @@
+---
+# tasks file for createVolume
+
+- include: createPartition.yml
+- include: modifyPartition.yml
