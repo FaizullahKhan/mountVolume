@@ -1,0 +1,17 @@
+---
+
+- name: Getting drive names
+  win_shell: Update-Disk -UniqueId {{ item.0.volume_id | replace('-','') }}
+  when: "item.0.volume_id != '1' and item.1.volumes[0].size < item.0.vol_size"
+  with_together:
+    - "{{ volumes_data }}"
+    - "{{ attached_volumes.results }}"
+
+- name: Resize Partition
+  win_shell: |
+    $repart_size = (Get-PartitionSupportedSize -DriveLetter {{ item.0.drive_letter | upper }})
+    Resize-Partition -DriveLetter {{ item.0.drive_letter | upper }} -Size $repart_size.SizeMax
+  when: "item.0.volume_id != '1' and item.1.volumes[0].size < item.0.vol_size"
+  with_together:
+    - "{{ volumes_data }}"
+    - "{{ attached_volumes.results }}"
